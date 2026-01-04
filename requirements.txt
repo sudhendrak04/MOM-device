@@ -1,0 +1,5 @@
+streamlit>=1.28
+numpy>=1.21
+sounddevice>=0.4.6
+soundfile>=0.12.1
+pvfalcon>=1.0.0

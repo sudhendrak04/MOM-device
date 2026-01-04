@@ -1,0 +1,5 @@
+Speaker 1 [0.9s - 5.1s]: I am Raj, I am recording this audio for narration.
+
+Speaker 2 [5.2s - 11.2s]: Hey, I am Nina. I am recording this audio for testing purposes.
+
+Speaker 1 [12.4s - 14.9s]: yes and uh we uh

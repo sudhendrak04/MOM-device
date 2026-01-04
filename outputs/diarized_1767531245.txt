@@ -1,0 +1,5 @@
+Speaker 1 [0.6s - 5.3s]: Hey, we are testing for audio input and process.
+
+Speaker 2 [5.5s - 7.6s]: Hey, we are Extinct Four!
+
+Speaker 2 [8.0s - 11.7s]: input using whisper and process to a resistance.

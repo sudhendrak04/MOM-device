@@ -1,0 +1,5 @@
+Speaker 1 [0.4s - 4.2s]: Hey, I am currently recording this audio for test purposes.
+
+Speaker 1 [5.0s - 7.3s]: and we are taking transcription.
+
+Speaker 1 [8.0s - 9.0s]: using this part.
