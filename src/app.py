@@ -212,12 +212,13 @@ def transcribe_audio_segment(audio_segment: np.ndarray, temp_path: Path) -> str:
     
     try:
         result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=120
-        )
+        test_cmd,
+        capture_output=True,
+        text=True,
+        timeout=120,       # ⬅️ increase timeout
+        input=""           # ⬅️ prevent interactive wait
+    )
+
         
         if output_txt.exists():
             transcript = output_txt.read_text(encoding="utf-8").strip()

@@ -1,5 +1,0 @@
-Speaker 1 [0.6s - 5.0s]: Hey, I am Raj and I am recording this audio for testing purpose.
-
-Speaker 1 [5.4s - 8.3s]: and we are checking diatization using Falcon.
-
-Speaker 1 [8.9s - 10.0s]: also machine.

@@ -1,0 +1,3 @@
+Speaker 1 [0.7s - 5.1s]: Hey I am testing this device for MM generation and dataization.
+
+Speaker 1 [6.6s - 7.5s]: using lama.

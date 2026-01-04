@@ -1,0 +1,1 @@
+Speaker 1 [0.7s - 8.2s]: We are currently testing this device for MOM generation using llama.cpp also dataization.

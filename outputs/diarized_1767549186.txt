@@ -1,0 +1,1 @@
+Speaker 1 [0.3s - 6.4s]: Hey, I am recording this audio to test if the MOM using LAMA is working or not.

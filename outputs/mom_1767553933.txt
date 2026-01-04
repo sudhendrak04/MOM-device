@@ -1,0 +1,37 @@
+- Loading model...
+- ▄▄ ▄▄
+- ██ ██
+- ██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
+- ██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
+- ██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
+- ██    ██
+- ▀▀    ▀▀
+- model      : tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf
+- modalities : text
+- available commands:
+- /exit or Ctrl+C     stop or exit
+- /clear              clear the chat history
+- /read               add a text file
+- Summarize the following meeting transcript into 3-5 clear bullet points covering the main topics discussed:
+- Meeting Summary:
+-
+1. Introduction of the speaker(s)
+- 1.0 seconds on screen time
+- 6.2 seconds total speaking time
+- Speaker 1 begins at 1.0s and speaks for 6.2s
+- Device testing for MOM generation using tiny lavas and aerization
+- 1.0s to 4.8s on screen time
+- Subject matter expert(SME) provides background information about the device's functioning and testing procedures
+- 5.6s to 9.7s on screen time
+- Overview of the test process
+- SME summarizes key points from previous discussions
+- Key areas of focus include:
+- Device performance and reliability
+- Calibration and accuracy measurements
+- Differences in device characteristics between microorganisms and aerobic bacteria
+- 10.
+- >
+- >
+- >
+- Exiting...
+- [0m

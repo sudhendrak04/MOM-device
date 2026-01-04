@@ -1,0 +1,3 @@
+Speaker 1 [0.9s - 6.1s]: We are currently testing this device for MOM generation using LAMA.
+
+Speaker 1 [6.9s - 9.0s]: and paralyzation using whisper.

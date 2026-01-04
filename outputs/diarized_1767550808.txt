@@ -1,0 +1,3 @@
+Speaker 1 [1.2s - 3.9s]: Hey, we are currently testing this device for...
+
+Speaker 1 [4.9s - 7.9s]: and MOM generation using LAMA.
