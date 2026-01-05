@@ -1,0 +1,5 @@
+Speaker 1 [0.9s - 15.1s]: So currently I am testing the device for MOM generation which takes inputs from a user processes it using whisper and generates a transcript and uses Falcon to diarize the speakers present in the room
+
+Speaker 1 [15.8s - 17.9s]: and at last we'll use Lama for
+
+Speaker 1 [19.2s - 20.0s]: MOM generation.

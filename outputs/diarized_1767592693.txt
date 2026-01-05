@@ -1,0 +1,13 @@
+Speaker 1 [0.5s - 5.6s]: We are trying to transfer our audio using whisper and for diabolization we are using falcon.
+
+Speaker 1 [6.1s - 8.7s]: So let's see if the spirit of meetings works.
+
+Speaker 2 [9.9s - 14.4s]: We are testing audio input and we are using Falconford aerization
+
+Speaker 2 [15.1s - 17.1s]: and the end goal is to make minutes of meeting.
+
+Speaker 3 [17.1s - 18.0s]: is equal to continuous.
+
+Speaker 2 [18.1s - 18.7s]: using Lama.
+
+Speaker 3 [18.8s - 20.0s]: (muffled speaking in foreign language)

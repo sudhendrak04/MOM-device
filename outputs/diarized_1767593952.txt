@@ -1,0 +1,5 @@
+Speaker 1 [0.5s - 2.6s]: We are currently testing
+
+Speaker 1 [3.3s - 5.9s]: sterilization using falcon and
+
+Speaker 1 [7.3s - 9.2s]: transcription vision small model

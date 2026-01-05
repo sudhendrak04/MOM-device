@@ -1,0 +1,1 @@
+Speaker 1 [0.6s - 20.0s]: Hey so I am making a device for MOM generation the user will input audio from mic and it will be processed by whisper for transcription falcon for diarization and llama for minutes of meeting generation so that is the end goal and we have to

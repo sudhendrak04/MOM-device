@@ -1,0 +1,5 @@
+Speaker 1 [0.5s - 3.4s]: [Error: name 'test_cmd' is not defined]
+
+Speaker 1 [4.1s - 6.3s]: [Error: name 'test_cmd' is not defined]
+
+Speaker 1 [7.7s - 9.6s]: [Error: name 'test_cmd' is not defined]
