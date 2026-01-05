@@ -24,7 +24,7 @@ IS_MAC = platform.system() == "Darwin"
 IS_LINUX = platform.system() == "Linux"
 
 # ⚙️ YOUR EXACT PATH CONFIGURATION ⚙️
-BASE_DIR = Path("C:/Users/Admin/Desktop/test")
+BASE_DIR = Path("C:/Users/Admin/Desktop/test/MOM-device")
 
 if IS_WINDOWS:
     possible_bins = [
@@ -43,7 +43,7 @@ if IS_WINDOWS:
     if WHISPER_BIN is None:
         WHISPER_BIN = BASE_DIR / "whisper.cpp" / "build" / "bin" / "Release" / "whisper-cli.exe"
 else:
-    BASE_DIR = Path.home() / "test"
+    BASE_DIR = Path.home() / "MOM-device"
     WHISPER_BIN = BASE_DIR / "whisper.cpp" / "main"
 
 # Create directories
@@ -59,9 +59,9 @@ SAMPLE_RATE = 16000
 MIN_CHUNK_SEC = 0.6  # Minimum segment duration
 MERGE_GAP_SEC = 0.3  # Gap to merge segments from same speaker
 
-# Auto-detect available model
+# Auto-detect available model (prioritize larger models for better accuracy)
 WHISPER_MODEL = None
-for model_name in ["ggml-base.en.bin", "ggml-tiny.en.bin"]:
+for model_name in ["ggml-small-q8_0.bin"]:
     model_path = MODELS_DIR / model_name
     if model_path.exists() and model_path.stat().st_size > 10_000_000:
         WHISPER_MODEL = model_path
@@ -125,6 +125,39 @@ def check_audio_quality(audio: np.ndarray) -> dict:
         "rms": int(rms)
     }
 
+# ================= AUDIO PREPROCESSING =================
+def preprocess_audio(audio: np.ndarray) -> np.ndarray:
+    """
+    Enhance audio quality before transcription
+    """
+    try:
+        import noisereduce as nr
+        
+        # Noise reduction
+        audio_float = audio.astype(np.float32) / 32768.0
+        reduced_noise = nr.reduce_noise(
+            y=audio_float,
+            sr=SAMPLE_RATE,
+            stationary=True,
+            prop_decrease=0.8
+        )
+        
+        # Normalize audio
+        max_val = np.max(np.abs(reduced_noise))
+        if max_val > 0:
+            reduced_noise = reduced_noise / max_val * 0.95
+        
+        # Convert back to int16
+        audio_clean = (reduced_noise * 32768.0).astype(np.int16)
+        
+        return audio_clean
+    except ImportError:
+        st.warning("⚠️ noisereduce not installed. Using raw audio. Install with: pip install noisereduce")
+        return audio
+    except Exception as e:
+        st.warning(f"⚠️ Audio preprocessing failed: {e}. Using raw audio.")
+        return audio
+
 # ================= DIARIZATION =================
 def diarize_audio(audio_int16: np.ndarray) -> list:
     """
@@ -154,24 +187,37 @@ def diarize_audio(audio_int16: np.ndarray) -> list:
 def merge_segments(segments: list) -> list:
     """
     Merge contiguous segments from the same speaker
+    Returns new list of dictionaries instead of modifying original segments
     """
     if not segments:
         return []
     
     merged = []
+    
     for seg in segments:
         if not merged:
-            merged.append(seg)
+            # Create a dictionary from the first segment
+            merged.append({
+                'speaker_tag': seg.speaker_tag,
+                'start_sec': seg.start_sec,
+                'end_sec': seg.end_sec
+            })
             continue
         
         last = merged[-1]
+        
         # Merge if same speaker and within gap threshold
-        if (seg.speaker_tag == last.speaker_tag and 
-            seg.start_sec <= last.end_sec + MERGE_GAP_SEC):
-            # Extend the last segment
-            last.end_sec = seg.end_sec
+        if (seg.speaker_tag == last['speaker_tag'] and 
+            seg.start_sec <= last['end_sec'] + MERGE_GAP_SEC):
+            # Extend the last segment's end time
+            last['end_sec'] = seg.end_sec
         else:
-            merged.append(seg)
+            # Add new segment as dictionary
+            merged.append({
+                'speaker_tag': seg.speaker_tag,
+                'start_sec': seg.start_sec,
+                'end_sec': seg.end_sec
+            })
     
     return merged
 
@@ -184,21 +230,25 @@ def get_speaker_labels(segments: list) -> dict:
     speaker_id = 1
     
     for seg in segments:
-        if seg.speaker_tag not in speaker_map:
-            speaker_map[seg.speaker_tag] = f"Speaker {speaker_id}"
+        # Handle both dict and object access
+        speaker_tag = seg['speaker_tag'] if isinstance(seg, dict) else seg.speaker_tag
+        
+        if speaker_tag not in speaker_map:
+            speaker_map[speaker_tag] = f"Speaker {speaker_id}"
             speaker_id += 1
     
     return speaker_map
 
 # ================= WHISPER TRANSCRIPTION =================
 def transcribe_audio_segment(audio_segment: np.ndarray, temp_path: Path) -> str:
-    """Transcribe a single audio segment"""
+    """Transcribe a single audio segment with enhanced accuracy"""
     
     # Save segment
     sf.write(temp_path, audio_segment, SAMPLE_RATE)
     
     output_txt = Path(str(temp_path) + ".txt")
     
+    # Enhanced command with better accuracy parameters
     cmd = [
         str(WHISPER_BIN),
         "-m", str(WHISPER_MODEL),
@@ -206,19 +256,21 @@ def transcribe_audio_segment(audio_segment: np.ndarray, temp_path: Path) -> str:
         "-otxt",
         "-of", str(temp_path),
         "--language", "en",
-        "--threads", "4" if IS_WINDOWS else "2",  # 4 for PC, 2 for Pi
-        "--no-timestamps"
+        "--threads", "4" if IS_WINDOWS else "2",
+        "--no-timestamps",
+        "--best-of", "5",           # Try 5 different decodings
+        "--beam-size", "5",         # Beam search for better accuracy
+        "--temperature", "0.0"      # Deterministic output
     ]
     
     try:
         result = subprocess.run(
-        test_cmd,
-        capture_output=True,
-        text=True,
-        timeout=120,       # ⬅️ increase timeout
-        input=""           # ⬅️ prevent interactive wait
-    )
-
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            input=""
+        )
         
         if output_txt.exists():
             transcript = output_txt.read_text(encoding="utf-8").strip()
@@ -232,9 +284,13 @@ def transcribe_audio_segment(audio_segment: np.ndarray, temp_path: Path) -> str:
 
 def transcribe_with_diarization(audio_int16: np.ndarray) -> str:
     """
-    Full pipeline: Diarization + Transcription
+    Full pipeline: Preprocessing → Diarization → Transcription
     Returns formatted transcript with speaker labels
     """
+    
+    # ✨ NEW: Preprocess audio first
+    st.info("🔧 Preprocessing audio for better accuracy...")
+    audio_int16 = preprocess_audio(audio_int16)
     
     # Step 1: Diarize
     with st.spinner("🔍 Step 1/2: Identifying speakers..."):
@@ -261,9 +317,13 @@ def transcribe_with_diarization(audio_int16: np.ndarray) -> str:
     status_text = st.empty()
     
     for idx, seg in enumerate(merged_segments):
-        # Extract audio segment
-        start_sample = int(seg.start_sec * SAMPLE_RATE)
-        end_sample = int(seg.end_sec * SAMPLE_RATE)
+        # Extract audio segment - now using dictionary access
+        start_sec = seg['start_sec']
+        end_sec = seg['end_sec']
+        speaker_tag = seg['speaker_tag']
+        
+        start_sample = int(start_sec * SAMPLE_RATE)
+        end_sample = int(end_sec * SAMPLE_RATE)
         chunk = audio_int16[start_sample:end_sample]
         
         duration = len(chunk) / SAMPLE_RATE
@@ -280,9 +340,9 @@ def transcribe_with_diarization(audio_int16: np.ndarray) -> str:
         # Transcribe
         text = transcribe_audio_segment(chunk, temp_chunk_path)
         
-        if text:
-            speaker_label = speaker_map[seg.speaker_tag]
-            timestamp = f"[{seg.start_sec:.1f}s - {seg.end_sec:.1f}s]"
+        if text and not text.startswith("[Error"):
+            speaker_label = speaker_map[speaker_tag]
+            timestamp = f"[{start_sec:.1f}s - {end_sec:.1f}s]"
             transcript_lines.append(f"{speaker_label} {timestamp}: {text}")
     
     # Cleanup
@@ -296,7 +356,7 @@ def transcribe_with_diarization(audio_int16: np.ndarray) -> str:
     return "\n\n".join(transcript_lines)
 
 def transcribe_audio_simple(audio_path: Path) -> str:
-    """Simple transcription without diarization"""
+    """Simple transcription without diarization but with enhanced accuracy"""
     
     if not WHISPER_MODEL or not WHISPER_MODEL.exists():
         return "[ERROR] Whisper model not found!"
@@ -304,8 +364,24 @@ def transcribe_audio_simple(audio_path: Path) -> str:
     if not WHISPER_BIN or not WHISPER_BIN.exists():
         return f"[ERROR] Whisper binary not found at: {WHISPER_BIN}"
     
+    # ✨ NEW: Preprocess audio for simple transcription too
+    try:
+        audio_data, _ = sf.read(audio_path)
+        audio_int16 = (audio_data * 32768).astype(np.int16) if audio_data.dtype == np.float32 else audio_data
+        
+        st.info("🔧 Preprocessing audio...")
+        audio_processed = preprocess_audio(audio_int16)
+        
+        # Save preprocessed audio
+        preprocessed_path = AUDIO_DIR / f"preprocessed_{audio_path.name}"
+        sf.write(preprocessed_path, audio_processed, SAMPLE_RATE)
+        audio_path = preprocessed_path
+    except Exception as e:
+        st.warning(f"Preprocessing skipped: {e}")
+    
     output_txt = Path(str(audio_path) + ".txt")
     
+    # Enhanced command with better accuracy parameters
     cmd = [
         str(WHISPER_BIN),
         "-m", str(WHISPER_MODEL),
@@ -314,7 +390,10 @@ def transcribe_audio_simple(audio_path: Path) -> str:
         "-of", str(audio_path),
         "--language", "en",
         "--threads", "4" if IS_WINDOWS else "2",
-        "--no-timestamps"
+        "--no-timestamps",
+        "--best-of", "5",           # Try 5 different decodings
+        "--beam-size", "5",         # Beam search for better accuracy
+        "--temperature", "0.0"      # Deterministic output
     ]
     
     try:
@@ -370,6 +449,16 @@ if WHISPER_BIN and WHISPER_BIN.exists():
     st.sidebar.success(f"✅ Whisper: Found")
 else:
     st.sidebar.error("❌ Whisper: Not Found")
+
+# Audio preprocessing status
+st.sidebar.divider()
+st.sidebar.subheader("🎛️ Audio Processing")
+try:
+    import noisereduce
+    st.sidebar.success("✅ Noise Reduction: Active")
+except ImportError:
+    st.sidebar.warning("⚠️ Noise Reduction: Disabled")
+    st.sidebar.caption("Install: pip install noisereduce")
 
 # Audio devices
 st.sidebar.subheader("🎤 Audio Devices")
@@ -455,6 +544,10 @@ if st.session_state.recorded_audio_path:
                 if not transcript.startswith("[ERROR]"):
                     st.success(f"✅ Completed in {elapsed:.1f}s")
                     st.text_area("Transcript:", transcript, height=200, key="simple_transcript")
+                    
+                    # Stats
+                    words = len(transcript.split())
+                    st.info(f"📊 Words: {words} | Speed: {elapsed:.1f}s")
                 else:
                     st.error(transcript)
     
@@ -486,6 +579,10 @@ if st.session_state.recorded_audio_path:
                     file_name="diarized_transcript.txt",
                     mime="text/plain"
                 )
+                
+                # Stats
+                words = len(transcript.split())
+                st.info(f"📊 Words: {words} | Speed: {elapsed:.1f}s")
             else:
                 st.error(transcript)
 
@@ -498,31 +595,42 @@ if st.button("🔄 Reset & New Recording"):
 # ================= SETUP GUIDE =================
 with st.expander("🔧 Setup Guide"):
     st.markdown(f"""
-    ## Setup Picovoice Falcon:
+    ## Setup for Maximum Accuracy:
     
-    ### 1. Install pvfalcon
+    ### 1. Install Audio Processing (Recommended)
+    ```bash
+    pip install noisereduce
+    ```
+    This adds noise reduction preprocessing for better accuracy.
+    
+    ### 2. Use Better Whisper Model
+    ```bash
+    cd C:/Users/Admin/Desktop/test/MOM-device/whisper.cpp/models
+    
+    # Download small.en (244 MB, much better accuracy)
+    curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin -o ggml-small.en.bin
+    ```
+    
+    ### 3. Install Picovoice Falcon
     ```bash
     pip install pvfalcon
     ```
-    
-    ### 2. Get Access Key
     - Go to: https://console.picovoice.ai/
     - Sign up (free tier available)
     - Copy your Access Key
-    - Add it to line 11 in the code:
-    ```python
-    PICOVOICE_ACCESS_KEY = "your_actual_key_here"
-    ```
-    
-    ### 3. Test
-    - Record audio with 2+ people talking
-    - Click "Transcribe + Diarize"
-    - Should see: Speaker 1, Speaker 2, etc.
+    - Add it to line 11 in the code
     
     ## Current Status:
     - Falcon Available: {"✅ Yes" if FALCON_AVAILABLE else "❌ No"}
     - Access Key Set: {"✅ Yes" if PICOVOICE_ACCESS_KEY != "YOUR_ACCESS_KEY_HERE" else "❌ No"}
     - Whisper Model: {"✅ Found" if WHISPER_MODEL and WHISPER_MODEL.exists() else "❌ Not Found"}
+    - Noise Reduction: {"✅ Active" if 'noisereduce' in str(__import__('sys').modules.keys()) else "❌ Disabled"}
+    
+    ## Accuracy Improvements:
+    - ✅ Audio preprocessing with noise reduction
+    - ✅ Beam search decoding (--beam-size 5)
+    - ✅ Multiple decoding attempts (--best-of 5)
+    - ✅ Deterministic output (--temperature 0.0)
     
     ## Expected Performance:
     - **PC**: Diarization + Transcription ~2-5x realtime
@@ -531,15 +639,18 @@ with st.expander("🔧 Setup Guide"):
 
 with st.expander("📊 How It Works"):
     st.markdown("""
-    ## Pipeline:
+    ## Enhanced Pipeline:
     
     1. **Record Audio** → Captures conversation
-    2. **Diarization (Falcon)** → Identifies speaker segments
+    2. **Preprocessing** → Noise reduction & normalization (NEW!)
+    3. **Diarization (Falcon)** → Identifies speaker segments
        - Detects who spoke when
        - Groups segments by speaker
-    3. **Merge Segments** → Combines nearby segments from same speaker
-    4. **Transcription (Whisper)** → Converts each segment to text
-    5. **Format Output** → Shows "Speaker 1: text", "Speaker 2: text"
+    4. **Merge Segments** → Combines nearby segments from same speaker
+    5. **Transcription (Whisper)** → Converts each segment to text
+       - Uses beam search for better accuracy (NEW!)
+       - Multiple decoding attempts (NEW!)
+    6. **Format Output** → Shows "Speaker 1: text", "Speaker 2: text"
     
     ## Tips for Best Results:
     - Clear audio with minimal background noise
@@ -547,4 +658,6 @@ with st.expander("📊 How It Works"):
     - Speakers should not overlap too much
     - Minimum 10 seconds of audio
     - Each speaker segment > 0.6 seconds
+    - Install noisereduce for preprocessing
+    - Use small.en or base.en model (not tiny.en)
     """)
