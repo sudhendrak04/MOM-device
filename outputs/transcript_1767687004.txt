@@ -1,0 +1,1 @@
+Speaker 1 [0.9s - 18.8s]: Yeah, so I have successfully implemented the pipeline, half pipeline basically that is the Falcon and Whisper and the Direction and Transcription Generation in Raspberry 4B. So we are currently one step ahead of our final integration that is Olama and then we will be done for the day.

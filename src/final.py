@@ -30,7 +30,7 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
 IS_LINUX = platform.system() == "Linux"
 
-BASE_DIR = Path("C:/Users/Admin/Desktop/test/MOM-device")
+BASE_DIR = Path("C:/Users/Admin/Desktop/test")
 
 if IS_WINDOWS:
     possible_bins = [
@@ -49,7 +49,7 @@ if IS_WINDOWS:
     if WHISPER_BIN is None:
         WHISPER_BIN = BASE_DIR / "whisper.cpp" / "build" / "bin" / "Release" / "whisper-cli.exe"
 else:
-    BASE_DIR = Path.home() / "MOM-device"
+    BASE_DIR = Path.home() / "test"
     WHISPER_BIN = BASE_DIR / "whisper.cpp" / "main"
 
 AUDIO_DIR = BASE_DIR / "audios"
@@ -65,7 +65,7 @@ MIN_CHUNK_SEC = 0.6
 MERGE_GAP_SEC = 0.3
 
 WHISPER_MODEL = None
-for model_name in ["ggml-small-q8_0.bin", "ggml-small.en.bin", "ggml-base.en.bin"]:
+for model_name in ["ggml-small-q8_0.bin"]:
     model_path = MODELS_DIR / model_name
     if model_path.exists() and model_path.stat().st_size > 10_000_000:
         WHISPER_MODEL = model_path
