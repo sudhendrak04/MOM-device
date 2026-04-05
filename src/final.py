@@ -30,7 +30,7 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
 IS_LINUX = platform.system() == "Linux"
 
-BASE_DIR = Path("C:/Users/Admin/Desktop/test")
+BASE_DIR = Path("D:/sudhendra/L&T/test")
 
 if IS_WINDOWS:
     possible_bins = [
