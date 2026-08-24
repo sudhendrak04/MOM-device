@@ -1,262 +1,189 @@
-# 🎙️ Meeting Transcription & Minutes Generator
+# MOM-device - Self-Hosted Meeting Minutes Server
 
-A fully local, privacy-first pipeline that records meeting audio, identifies speakers, transcribes speech, and generates structured meeting minutes — all running on your own machine with no cloud dependencies.
+A private, self-hosted meeting assistant that takes any meeting recording, figures out **who said what**, writes a **speaker-labeled transcript**, and generates **structured meeting minutes** - entirely on your own machine. No cloud, no bots joining your calls, no per-seat fees.
 
----
-
-## 🧠 How It Works
-
-```
-Record Audio → Noise Reduction → Speaker Diarization → Transcription → Meeting Minutes
-   (mic)       (noisereduce)        (Falcon)           (Whisper.cpp)     (Ollama LLM)
-```
+Built as the rebuild of an edge-device prototype into an organization-ready tool: FastAPI backend + vanilla web UI + a fully local AI pipeline.
 
 ---
 
-## ✅ Prerequisites
+## How it works
 
-Before installing, make sure you have the following:
+```
+Upload/Record -> ffmpeg decode -> Speaker Diarization -> Transcription -> Alignment -> Meeting Minutes
+  (browser)      (16kHz mono)     (pyannote community-1)   (faster-whisper)  (overlap math)   (Ollama LLM)
+```
 
-- Windows 10/11 (64-bit)
-- [Python 3.9+](https://www.python.org/downloads/) via Anaconda or standard install
-- [Git](https://git-scm.com/download/win)
-- [CMake](https://cmake.org/download/) (for building Whisper.cpp)
-- [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with **C++ Desktop Development** workload
-- A working microphone
+- **Speaker diarization** - pyannote community-1 (2026 open-source SOTA) labels voices as Speaker 1, 2, ...
+- **Transcription** - Whisper large-v3-turbo via faster-whisper on CUDA with word-level timestamps and Silero VAD
+- **Minutes** - local LLM (qwen2.5 via Ollama) with map-reduce batching for hour-long meetings
+- **Measured speed** - 21-minute real meeting processed end-to-end in under 4 minutes (5.4x realtime)
+
+Full technical walkthrough: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## 📦 Installation
+## Features
 
-### Step 1 — Clone or place the project
-
-Put your project files in a folder. This guide assumes:
-```
-D:/sudhendra/L&T/test/
-```
-
-Update the `BASE_DIR` in `final.py` to match your actual folder path:
-```python
-BASE_DIR = Path("D:/sudhendra/L&T/test")  # use forward slashes
-```
+- Drag-and-drop upload (wav/mp3/m4a/webm/ogg/flac/aac, up to 500 MB) or record directly in the browser
+- Live progress: stage chips + percentage bar while processing runs in the background
+- Speaker-labeled transcript with timestamps; rename speakers to real names in one click (transcript, minutes *and* downloads update instantly - no reprocessing)
+- Structured markdown minutes: overview, discussion points, decisions, action items
+- Meeting history that survives server restarts (SQLite)
+- REST API for everything the UI does - integrate scripts or internal tools
+- Graceful degradation: without a HuggingFace token you still get transcript + minutes (just without speaker labels)
+- 100% local inference; audio never leaves the machine; works air-gapped
 
 ---
 
-### Step 2 — Install Python dependencies
+## Requirements
 
-Open Anaconda Prompt or Command Prompt and run:
+| Component | Minimum | Notes |
+|---|---|---|
+| OS | Windows 10/11 | Linux should work; setup script is PowerShell |
+| Python | 3.10+ | [python.org/downloads](https://www.python.org/downloads/) - tick "Add to PATH" |
+| Git | any | [git-scm.com](https://git-scm.com/download/win) |
+| NVIDIA GPU (optional but recommended) | ~8 GB VRAM | RTX 2000 Ada class verified; CPU-only mode works too |
+| RAM | 16 GB+ | |
+| ffmpeg / ffprobe | any recent | `winget install Gyan.FFmpeg` (or let setup.ps1 remind you) |
+| Ollama | current | [ollama.com/download](https://ollama.com/download), then `ollama pull qwen2.5:7b` |
+| HuggingFace account | free | only for gated pyannote diarization models |
+
+---
+
+## Quick start
+
+### 1. Get the code
+
+```powershell
+git clone https://github.com/<your-username>/MOM-device.git
+cd MOM-device
+```
+
+### 2. One-command setup
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+```
+
+Creates `.venv`, installs pinned dependencies, installs the CUDA PyTorch build **last** so the CPU wheel cannot override it (order matters), checks ffmpeg, and seeds `.env` from the template.
+
+### 3. Configure `.env`
+
+Open `.env` (created by setup) and fill in:
+
+```ini
+API_KEY=choose-a-long-random-string     # required - sent as X-API-Key
+HF_TOKEN=hf_...                         # optional - enables speaker diarization
+OLLAMA_MODEL=qwen2.5:7b                 # minutes LLM
+```
+
+For diarization: create a free HuggingFace account, accept the license at `https://huggingface.co/pyannote/speaker-diarization-community-1` (and its segmentation model page linked there), create a Read token at `https://huggingface.co/settings/tokens`, and paste it as `HF_TOKEN`. Skip it and the pipeline still works - just without speaker names.
+
+### 4. Start the LLM server + MOM server
+
+```powershell
+ollama serve                                            # if not already running
+.venv\Scripts\python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+
+First run downloads the Whisper weights (~1.5 GB, one time) on the first meeting - or run `.venv\Scripts\python scripts\prewarm_models.py` ahead of time to avoid the wait.
+
+### 5. Use it
+
+Open **http://localhost:8000**, enter your API key once (stored in the browser only), then record or drop a file. Watch the progress bar; download transcript and minutes when done.
+
+Optional helpers:
+
+```powershell
+.venv\Scripts\python scripts\prewarm_models.py          # cache whisper weights before first meeting
+powershell -File scripts\watch_job.ps1 <job_id>         # terminal progress bar for any job
+```
+
+### Share with your team (LAN)
+
+Because the server binds `0.0.0.0`, anyone on the same network can open `http://<your-pc-ip>:8000`, enter the same API key, and use the tool from their own browser - no installation on their side. Find your IP with `ipconfig` (allow port 8000 through Windows Firewall if prompted). Audio is processed only by your machine either way.
+
+---
+
+## Configuration reference
+
+Every knob lives in `.env` (see [.env.example](.env.example)):
+
+| Key | Default | Purpose |
+|---|---|---|
+| `API_KEY` | - | shared secret for X-API-Key / Bearer auth |
+| `HF_TOKEN` | empty | enables gated pyannote models |
+| `DATA_DIR` | `data` | storage root (uploads/outputs/db/models) |
+| `WHISPER_MODEL` | `large-v3-turbo` | STT model |
+| `DIARIZATION_MODEL` | `community-1` | falls back to `3.1` automatically |
+| `ALLOW_NO_DIARIZATION` | `true` | continue without speaker labels on failure |
+| `DEVICE` / `COMPUTE_TYPE` | `auto` | force cpu/cuda or quantization if needed |
+| `MAX_UPLOAD_MB` | `500` | hard upload cap |
+| `WORKER_CONCURRENCY` | `1` | GPU serialization; raise at your own VRAM risk |
+| `BATCH_SIZE_CHARS` / `BATCH_OVERLAP_CHARS` | `3000` / `200` | long-transcript map-reduce tuning |
+
+---
+
+## API
+
+Everything the UI does is available over REST (header `X-API-Key: <key>`):
 
 ```bash
-pip install streamlit sounddevice soundfile numpy requests noisereduce pvfalcon
+curl -H "X-API-Key: $KEY" -F "file=@meeting.wav" http://localhost:8000/api/meetings/upload
+# {"meeting_id":"...","job_id":"...","status":"queued"}
+
+curl -H "X-API-Key: $KEY" http://localhost:8000/api/jobs/<job_id>
+# {"stage":"transcribing","progress":55,"message":"Transcribing (62%)"}
 ```
 
-> **Note:** If `sounddevice` fails, install PortAudio first:
-> ```bash
-> pip install pipwin
-> pipwin install pyaudio
-> ```
+Endpoints: upload, job polling, history, meeting detail, speaker list/rename (`GET|PATCH /api/meetings/{id}/speakers`), transcript, minutes, delete. Full table in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-### Step 3 — Build Whisper.cpp
+## Testing
 
-Whisper.cpp is a fast, local speech-to-text engine. Build it from source:
-
-```bash
-cd D:/sudhendra/L&T/test
-git clone https://github.com/ggerganov/whisper.cpp
-cd whisper.cpp
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
+```powershell
+.venv\Scripts\python -m pytest backend\tests -q
 ```
 
-After building, confirm `whisper-cli.exe` exists at:
-```
-D:/sudhendra/L&T/test/whisper.cpp/build/bin/Release/whisper-cli.exe
-```
+35 tests covering auth, upload validation, alignment math, minutes batching, and the speaker-naming flow - all CPU-only, no models needed.
 
 ---
 
-### Step 4 — Download a Whisper model
+## Benchmarks
 
-Inside the `whisper.cpp` folder, download a model into the `models/` directory:
-
-```bash
-cd D:/sudhendra/L&T/test/whisper.cpp/models
-
-# Small English model (recommended, ~150MB, fast)
-curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin -o ggml-small.en.bin
-
-# OR quantized version (faster, slightly less accurate)
-curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin -o ggml-small-q8_0.bin
-```
-
-Then update the model name in `final.py` to match the file you downloaded:
-```python
-for model_name in ["ggml-small.en.bin", "ggml-small-q8_0.bin"]:
-```
+Measured on the dev machine (RTX 2000 Ada 8 GB): real AMI corpus meetings, four speakers, correct attribution, 5.44x realtime end-to-end including LLM minutes. Comparison against Fireflies/Otter/MeetGeek/tl;dv with sources: [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ---
 
-### Step 5 — Set up Picovoice Falcon (Speaker Diarization)
+## Documentation
 
-Falcon identifies who is speaking at each moment.
-
-1. Go to [https://console.picovoice.ai/](https://console.picovoice.ai/)
-2. Sign up for a free account
-3. Copy your **Access Key**
-4. Paste it into `final.py` at the top:
-
-```python
-PICOVOICE_ACCESS_KEY = "your-key-here"
-```
-
-> The free tier supports offline usage and does not send audio to any server.
+| Doc | Contents |
+|---|---|
+| [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) | beginner-friendly master guide: every technology decision with benchmark tables, hardware fit, security posture, glossary |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | system diagram, journey of a meeting mapped to code files, data model, concurrency model |
+| [docs/REBUILD_LOG.md](docs/REBUILD_LOG.md) | phase-by-phase rebuild story with measured numbers |
+| [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | head-to-head vs commercial tools |
+| [docs/PROBLEMS.md](docs/PROBLEMS.md) | every real problem hit during the build + solutions (12 entries) |
 
 ---
 
-### Step 6 — Install and start Ollama (Meeting Minutes LLM)
+## Security notes
 
-Ollama runs the language model locally to generate meeting minutes.
-
-1. Download from [https://ollama.com](https://ollama.com) and install
-2. Open a Command Prompt and pull a model:
-
-```bash
-# Lightweight and fast (recommended for low-end machines)
-ollama pull deepseek-r1:1.5b
-
-# Better quality (requires 8GB+ RAM)
-ollama pull mistral:7b
-```
-
-3. Start the Ollama server (keep this running in the background):
-
-```bash
-ollama serve
-```
+- All secrets live in `.env` (gitignored); nothing hardcoded
+- Every endpoint except `/api/health` requires authentication
+- Uploads validated by extension allowlist + streaming byte cap
+- Deleting a meeting removes database rows *and* media/transcript/minutes files
 
 ---
 
-## 🚀 Running the App
+## Credits
 
-```bash
-cd D:/sudhendra/L&T/test
-streamlit run final.py
-```
+Built on the shoulders of:
 
-The app will open in your browser at `http://localhost:8501`
-
----
-
-## 🖥️ App Walkthrough
-
-| Step | Action | What Happens |
-|------|--------|--------------|
-| **1** | Choose microphone & duration, click **Start Recording** | Audio is captured and saved |
-| **2** | Click **Transcribe with Speaker Diarization** | Falcon identifies speakers, Whisper transcribes each turn |
-| **3** | Click **Generate Meeting Minutes** | Ollama LLM produces structured minutes |
-| **4** | Download transcript and/or minutes | Files saved to `outputs/` folder |
-
----
-
-## 📁 Folder Structure
-
-```
-D:/sudhendra/L&T/test/
-│
-├── final.py                        ← Main application
-│
-├── whisper.cpp/
-│   ├── build/bin/Release/
-│   │   └── whisper-cli.exe         ← Whisper binary
-│   └── models/
-│       └── ggml-small.en.bin       ← Whisper model
-│
-├── audios/                         ← Recorded audio files (auto-created)
-└── outputs/                        ← Transcripts and meeting minutes (auto-created)
-```
-
----
-
-## ⚙️ System Status Panel
-
-The sidebar shows the live status of each component:
-
-| Indicator | Meaning |
-|-----------|---------|
-| ✅ Ollama: Running | LLM server is active |
-| ✅ Falcon: Ready | Diarization key is set |
-| ✅ Whisper: `model-name` | Model file was found |
-| ✅ Noise Reduction: Active | `noisereduce` is installed |
-
-If any show ❌, refer to the relevant installation step above.
-
----
-
-## 🔧 Configuration Reference
-
-All key settings are at the top of `final.py`:
-
-```python
-# Your Picovoice key for speaker diarization
-PICOVOICE_ACCESS_KEY = "your-key-here"
-
-# Ollama model to use for minutes generation
-OLLAMA_MODEL = "deepseek-r1:1.5b"
-
-# Path to your project folder (use forward slashes on Windows)
-BASE_DIR = Path("D:/sudhendra/L&T/test")
-
-# Audio sample rate (do not change unless you know why)
-SAMPLE_RATE = 16000
-```
-
----
-
-## 🐛 Troubleshooting
-
-**❌ Whisper: Not Found**
-- Run `dir D:\sudhendra\L&T\test\whisper.cpp\models` in Command Prompt
-- Check the exact filename and update the model list in `final.py`
-- Confirm `whisper-cli.exe` exists in `build/bin/Release/`
-
-**❌ Ollama: Not Running**
-- Open a new terminal and run `ollama serve`
-- Make sure port 11434 is not blocked by a firewall
-
-**❌ Diarization failed**
-- Check your Picovoice access key is correctly pasted (no extra spaces)
-- Ensure the recording is at least a few seconds long and has audible speech
-
-**OSError: filename syntax incorrect**
-- Never use raw backslashes in Python paths: `"D:\test"` → `"D:/test"` or `r"D:\test"`
-
-**Audio too quiet**
-- Check your microphone is set as the default recording device in Windows Sound settings
-- Speak closer to the microphone or increase mic volume in system settings
-
----
-
-## 📊 Expected Performance
-
-| Stage | Time (for 1 min audio) |
-|-------|------------------------|
-| Recording | Real-time |
-| Noise reduction | ~5 seconds |
-| Speaker diarization | ~15–30 seconds |
-| Transcription | ~1–3 minutes |
-| Minutes generation | ~10–30 seconds |
-| **Total** | **~2–5 minutes** |
-
-Performance varies based on CPU speed, model size, and number of speakers.
-
----
-
-## 📄 License
-
-This project uses the following open-source components:
-- [Whisper.cpp](https://github.com/ggerganov/whisper.cpp) — MIT License
-- [Ollama](https://github.com/ollama/ollama) — MIT License
-- [Picovoice Falcon](https://picovoice.ai/) — Free tier available
-- [Streamlit](https://streamlit.io/) — Apache 2.0 License
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (MIT) - CTranslate2 Whisper runtime
+- [pyannote.audio](https://github.com/pyannote/pyannote-audio) (MIT) - speaker diarization
+- [Silero VAD](https://github.com/snakers4/silero-vad) (MIT) - voice activity detection
+- [Ollama](https://ollama.com) (MIT) - local LLM serving
+- [FastAPI](https://fastapi.tiangolo.com) (MIT), [SQLAlchemy](https://www.sqlalchemy.org) (MIT)
+- OpenAI Whisper models (Apache-2.0 weights) and the [AMI Meeting Corpus](https://groups.inf.ed.ac.uk/ami/) for test data

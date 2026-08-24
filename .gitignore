@@ -1,1 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
 mom_env/
+
+# Secrets & local config
+.env
+
+# Runtime data: uploads, generated outputs, database
+data/
+uploads/
+outputs/
+audios/
+
+# AI model weights - never commit binaries
+models/
+*.bin
+
+# OS / editor noise
+Thumbs.db
+Desktop.ini
+
+# graphify local-only artifacts (graph itself IS committed)
+graphify-out/cost.json
+graphify-out/cache/
+graphify-out/20*/

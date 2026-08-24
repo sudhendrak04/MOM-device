@@ -1,0 +1,1 @@
+"""MOM server application package."""

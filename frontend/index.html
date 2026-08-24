@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOM Server - Meeting Minutes</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+      </span>
+      <div>
+        <h1>MOM Server</h1>
+        <span class="subtitle">Meeting transcription &amp; minutes - fully local</span>
+      </div>
+    </div>
+    <button id="engine-status" class="status-pill status-unknown" type="button" title="Engine details">
+      <span class="dot" aria-hidden="true"></span><span id="engine-status-text">checking engines...</span>
+    </button>
+  </header>
+
+  <main>
+    <!-- Connection -->
+    <section class="card" id="connection-card">
+      <div class="card-head">
+        <h2><span class="step-num">1</span> Connect</h2>
+      </div>
+      <div class="row">
+        <input type="password" id="api-key-input" placeholder="API key" autocomplete="off" spellcheck="false" />
+        <button id="save-key-btn" class="btn primary">Connect</button>
+      </div>
+      <p class="hint" id="connection-hint">The key is stored only in this browser and sent as X-API-Key with every request.</p>
+    </section>
+
+    <!-- Input -->
+    <section class="card">
+      <div class="card-head">
+        <h2><span class="step-num">2</span> Provide meeting audio</h2>
+        <span class="hint">up to 500 MB &middot; wav / mp3 / m4a / webm / ogg / flac</span>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="record" role="tab" type="button">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg>
+          Record in browser
+        </button>
+        <button class="tab" data-tab="upload" role="tab" type="button">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+          Upload a file
+        </button>
+      </div>
+
+      <div id="tab-record" class="tab-body active">
+        <div class="record-row">
+          <button id="rec-start-btn" class="btn record-btn big" type="button">
+            <span class="rec-dot" aria-hidden="true"></span> Start recording
+          </button>
+          <button id="rec-stop-btn" class="btn danger big" type="button" disabled>
+            Stop &amp; process
+          </button>
+          <div class="timer"><span id="rec-timer">00:00</span></div>
+        </div>
+        <audio id="rec-playback" controls style="display:none"></audio>
+        <p class="hint">Your microphone is captured locally. Audio is sent to the server only when you press Stop.</p>
+      </div>
+
+      <div id="tab-upload" class="tab-body">
+        <div id="drop-zone" tabindex="0" role="button" aria-label="Choose or drop an audio file">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+          <p><strong>Drop an audio file here</strong> or click to browse</p>
+          <p class="hint">The file never leaves this machine's network.</p>
+          <input type="file" id="file-input" accept=".wav,.mp3,.m4a,.webm,.ogg,.opus,.flac,.aac" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress -->
+    <section class="card hidden" id="progress-card" aria-live="polite">
+      <div class="card-head">
+        <h2><span class="step-num">3</span> Processing <span id="proc-filename" class="muted"></span></h2>
+        <span id="progress-percent" class="percent">0%</span>
+      </div>
+      <div class="stages" id="stage-chips"></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <p id="progress-message" class="hint"></p>
+    </section>
+
+    <!-- Results -->
+    <section class="card hidden" id="results-card">
+      <div class="card-head">
+        <h2><span class="step-num">4</span> Results <span id="result-meta" class="muted"></span></h2>
+        <div class="row gap-small">
+          <button id="copy-minutes-btn" class="btn subtle small" type="button" title="Copy minutes">Copy</button>
+          <button id="dl-transcript-btn" class="btn subtle small" type="button">Transcript .txt</button>
+          <button id="dl-minutes-btn" class="btn subtle small" type="button">Minutes .md</button>
+        </div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="minutes" role="tab" type="button">Minutes</button>
+        <button class="tab" data-tab="transcript" role="tab" type="button">Transcript</button>
+        <button class="tab" data-tab="speakers" role="tab" type="button">Speakers <span id="speaker-count-badge" class="count-badge hidden"></span></button>
+      </div>
+      <div id="tab-minutes" class="tab-body active">
+        <div id="minutes-view" class="md empty-ok"></div>
+      </div>
+      <div id="tab-transcript" class="tab-body">
+        <pre id="transcript-view" class="empty-ok"></pre>
+      </div>
+      <div id="tab-speakers" class="tab-body">
+        <div id="rename-panel">
+          <p class="hint panel-intro">
+            Voices get generic labels. Type real names - transcripts, minutes and
+            downloads will use them immediately. Nothing is reprocessed.
+          </p>
+          <div id="rename-rows"></div>
+          <div class="row">
+            <button id="save-names-btn" class="btn primary" type="button">Save names</button>
+            <span id="rename-status" class="hint"></span>
+          </div>
+        </div>
+        <p id="no-speakers-note" class="hint hidden">
+          No speakers were detected for this meeting (diarization was off or skipped).
+        </p>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="card">
+      <div class="card-head">
+        <h2>History</h2>
+        <button id="refresh-history-btn" class="btn ghost small" type="button" title="Refresh list">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+      <table id="history-table">
+        <thead>
+          <tr><th>Date</th><th>File</th><th>Status</th><th>Duration</th><th>Speakers</th><th>Took</th><th></th></tr>
+        </thead>
+        <tbody id="history-body"><tr><td colspan="7" class="muted">Loading...</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>MOM Server v2.0 &middot; all processing stays on this machine</footer>
+
+  <div id="toast-stack" aria-live="polite"></div>
+
+  <div id="modal-backdrop" class="hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h3 id="modal-title">Delete this meeting?</h3>
+      <p id="modal-body" class="muted">The transcript, minutes and audio files will be removed permanently.</p>
+      <div class="row end">
+        <button id="modal-cancel-btn" class="btn ghost" type="button">Cancel</button>
+        <button id="modal-confirm-btn" class="btn danger" type="button">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

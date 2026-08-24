@@ -1,6 +1,11 @@
-streamlit>=1.28
-numpy>=1.21
-sounddevice>=0.4.6
-soundfile>=0.12.1
-pvfalcon>=1.0.0
-noisereduce 
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+sqlalchemy>=2.0
+pydantic>=2.6
+pydantic-settings>=2.2
+requests>=2.31
+
+# Speech AI stack (torch installed separately - see scripts/setup.ps1 for GPU wheel)
+faster-whisper>=1.0
+pyannote.audio>=3.3

@@ -1,0 +1,11 @@
+# Data artifacts - not knowledge; excluded from the knowledge graph
+audios/
+outputs/
+
+# Legacy engine dirs (empty placeholders from the Raspberry Pi era)
+whisper.cpp/
+llama.cpp/
+
+# AI-assistant tooling files - graph should map the project, not its tooling
+.claude/
+CLAUDE.md

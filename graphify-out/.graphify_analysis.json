@@ -1,0 +1,245 @@
+{
+  "communities": {
+    "0": [
+      "src_app",
+      "src_app_check_audio_quality",
+      "src_app_diarize_audio",
+      "src_app_get_speaker_labels",
+      "src_app_list_audio_devices",
+      "src_app_merge_segments",
+      "src_app_py_ndarray",
+      "src_app_py_path",
+      "src_app_rationale_112",
+      "src_app_rationale_130",
+      "src_app_rationale_155",
+      "src_app_rationale_179",
+      "src_app_rationale_195",
+      "src_app_rationale_247",
+      "src_app_rationale_312",
+      "src_app_rationale_82",
+      "src_app_rationale_96",
+      "src_app_record_audio",
+      "src_app_transcribe_audio_segment",
+      "src_app_transcribe_audio_simple",
+      "src_app_transcribe_with_diarization"
+    ],
+    "1": [
+      "src_final",
+      "src_final_check_ollama_status",
+      "src_final_create_batch_prompt",
+      "src_final_create_final_synthesis_prompt",
+      "src_final_generate_meeting_minutes",
+      "src_final_generate_with_ollama",
+      "src_final_list_audio_devices",
+      "src_final_merge_segments",
+      "src_final_rationale_102",
+      "src_final_rationale_133",
+      "src_final_rationale_162",
+      "src_final_rationale_196",
+      "src_final_rationale_217",
+      "src_final_rationale_265",
+      "src_final_rationale_355",
+      "src_final_rationale_90",
+      "src_final_split_text_into_batches"
+    ],
+    "2": [
+      "src_final_check_audio_quality",
+      "src_final_diarize_audio",
+      "src_final_get_speaker_labels",
+      "src_final_preprocess_audio",
+      "src_final_py_ndarray",
+      "src_final_py_path",
+      "src_final_rationale_279",
+      "src_final_rationale_295",
+      "src_final_rationale_313",
+      "src_final_rationale_339",
+      "src_final_rationale_385",
+      "src_final_rationale_400",
+      "src_final_rationale_440",
+      "src_final_record_audio",
+      "src_final_transcribe_audio_segment",
+      "src_final_transcribe_with_diarization"
+    ],
+    "3": [
+      "src_test",
+      "src_test_check_ollama_status",
+      "src_test_create_batch_prompt",
+      "src_test_create_final_synthesis_prompt",
+      "src_test_generate_meeting_minutes",
+      "src_test_generate_with_ollama",
+      "src_test_rationale_104",
+      "src_test_rationale_142",
+      "src_test_rationale_166",
+      "src_test_rationale_27",
+      "src_test_rationale_39",
+      "src_test_rationale_71",
+      "src_test_split_text_into_batches"
+    ],
+    "4": [
+      "README_md"
+    ],
+    "5": [
+      "installation_step10_md"
+    ],
+    "6": [
+      "installation_step11_md"
+    ],
+    "7": [
+      "installation_step12_md"
+    ],
+    "8": [
+      "installation_step13_md"
+    ],
+    "9": [
+      "installation_step14_md"
+    ],
+    "10": [
+      "installation_step1_md"
+    ],
+    "11": [
+      "installation_step2_md"
+    ],
+    "12": [
+      "installation_step3_md"
+    ],
+    "13": [
+      "installation_step4_md"
+    ],
+    "14": [
+      "installation_step5_md"
+    ],
+    "15": [
+      "installation_step6_md"
+    ],
+    "16": [
+      "installation_step7_md"
+    ],
+    "17": [
+      "installation_step8_md"
+    ],
+    "18": [
+      "installation_step9_md"
+    ],
+    "19": [
+      "prerequisites_md"
+    ],
+    "20": [
+      "requirements_txt"
+    ]
+  },
+  "cohesion": {
+    "0": 0.1380952380952381,
+    "1": 0.14705882352941177,
+    "2": 0.15,
+    "3": 0.20512820512820512,
+    "4": 1.0,
+    "5": 1.0,
+    "6": 1.0,
+    "7": 1.0,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_final_transcribe_with_diarization",
+      "label": "transcribe_with_diarization()",
+      "degree": 8
+    },
+    {
+      "id": "src_app_transcribe_with_diarization",
+      "label": "transcribe_with_diarization()",
+      "degree": 7
+    },
+    {
+      "id": "src_final_generate_meeting_minutes",
+      "label": "generate_meeting_minutes()",
+      "degree": 6
+    },
+    {
+      "id": "src_test_generate_meeting_minutes",
+      "label": "generate_meeting_minutes()",
+      "degree": 6
+    },
+    {
+      "id": "src_app_transcribe_audio_segment",
+      "label": "transcribe_audio_segment()",
+      "degree": 5
+    },
+    {
+      "id": "src_final_transcribe_audio_segment",
+      "label": "transcribe_audio_segment()",
+      "degree": 5
+    },
+    {
+      "id": "src_app_diarize_audio",
+      "label": "diarize_audio()",
+      "degree": 4
+    },
+    {
+      "id": "src_final_diarize_audio",
+      "label": "diarize_audio()",
+      "degree": 4
+    },
+    {
+      "id": "src_final_preprocess_audio",
+      "label": "preprocess_audio()",
+      "degree": 4
+    },
+    {
+      "id": "src_app_check_audio_quality",
+      "label": "check_audio_quality()",
+      "degree": 3
+    }
+  ],
+  "surprises": [
+    {
+      "source": "transcribe_with_diarization()",
+      "target": "merge_segments()",
+      "source_files": [
+        "src/final.py",
+        "src/final.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 1 → community 2"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `transcribe_audio_segment()` connect `Audio Diarization and Transcription` to `Meeting Minutes Generation`?",
+      "why": "High betweenness centrality (0.019) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `transcribe_with_diarization()` connect `Audio Diarization and Transcription` to `Meeting Minutes Generation`?",
+      "why": "High betweenness centrality (0.017) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `Step 1 — Clone or place the project`, `Step 2 — Install Python dependencies`, `Step 3 — Build Whisper.cpp` to the rest of the system?",
+      "why": "16 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Audio Processing` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1380952380952381 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Meeting Minutes Generation` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.14705882352941177 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

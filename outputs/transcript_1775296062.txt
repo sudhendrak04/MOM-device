@@ -1,7 +1,0 @@
-Speaker 1 [0.7s - 2.3s]: Hey, my name is Ram.
-
-Speaker 1 [2.8s - 7.4s]: And I am here to interviewing for the software developer tool.
-
-Speaker 1 [8.0s - 8.9s]: the company.
-
-Speaker 1 [9.2s - 10.0s]: or the
