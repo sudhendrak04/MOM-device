@@ -14,6 +14,10 @@ uploads/
 outputs/
 audios/
 
+# Sample audio IS committed (via Git LFS) so clone users get runnable demo files
+!data/test_audio/
+!data/test_audio/**
+
 # AI model weights - never commit binaries
 models/
 *.bin
